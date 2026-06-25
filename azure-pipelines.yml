@@ -6,6 +6,9 @@ pool:
 
 stages:
 
+# =========================
+# 1. VALIDATION
+# =========================
 - stage: Validation
   displayName: 'Validation'
   jobs:
@@ -16,6 +19,9 @@ stages:
         echo "Validating Enterprise DevSecOps Platform"
       displayName: 'Validation'
 
+# =========================
+# 2. TESTING
+# =========================
 - stage: Testing
   displayName: 'Testing'
   dependsOn: Validation
@@ -23,15 +29,20 @@ stages:
   - job: Pytest
     displayName: 'Pytest Job'
     steps:
+
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '3.12'
 
     - script: |
+        python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         pytest app/test_app.py
       displayName: 'Run Pytest'
 
+# =========================
+# 3. CODE QUALITY
+# =========================
 - stage: Code_Quality
   displayName: 'Code Quality'
   dependsOn: Testing
@@ -39,15 +50,20 @@ stages:
   - job: Pylint
     displayName: 'Pylint Job'
     steps:
+
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '3.12'
 
     - script: |
-        pip install -r app/requirements.txt
-        pylint app/app.py
+        python -m pip install --upgrade pip
+        pip install pylint
+        pylint app/*.py --fail-under=5
       displayName: 'Run Pylint'
 
+# =========================
+# 4. SECURITY SCAN
+# =========================
 - stage: Security_Scan
   displayName: 'Security Scan'
   dependsOn: Code_Quality
@@ -55,15 +71,20 @@ stages:
   - job: Bandit
     displayName: 'Bandit Job'
     steps:
+
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '3.12'
 
     - script: |
-        pip install -r app/requirements.txt
-        bandit -r app
-      displayName: 'Run Bandit'
+        python -m pip install --upgrade pip
+        pip install bandit
+        bandit -r app -ll
+      displayName: 'Run Bandit Security Scan'
 
+# =========================
+# 5. KUBERNETES VALIDATION
+# =========================
 - stage: Kubernetes_Validation
   displayName: 'Kubernetes Validation'
   dependsOn: Security_Scan
@@ -72,10 +93,13 @@ stages:
     displayName: 'AKS Validation'
     steps:
     - script: |
-        echo "AKS Deployment Manifest Found"
+        echo "Validating Kubernetes Manifests"
         ls -la k8s
-      displayName: 'Validate Kubernetes Manifests'
+      displayName: 'Check K8s Files'
 
+# =========================
+# 6. DEPLOY TO AKS
+# =========================
 - stage: Deploy_to_AKS
   displayName: 'Deploy to AKS'
   dependsOn: Kubernetes_Validation
@@ -83,6 +107,7 @@ stages:
   - job: Deploy
     displayName: 'Deploy Application'
     steps:
+
     - task: KubernetesManifest@1
       displayName: 'Deploy Deployment'
       inputs:
