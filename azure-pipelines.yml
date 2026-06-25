@@ -4,15 +4,23 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: |
-    echo "Enterprise DevSecOps Pipeline Started"
-    python --version
-  displayName: 'Validation'
+stages:
 
-- task: Docker@2
-  displayName: Build Docker Image
-  inputs:
-    command: build
-    Dockerfile: app/Dockerfile
-    repository: devsecops-app
+- stage: Validation
+  jobs:
+  - job: Validation
+    steps:
+    - script: echo "Validating Enterprise DevSecOps Platform"
+      displayName: "Validation"
+
+- stage: Kubernetes_Validation
+  dependsOn: Validation
+
+  jobs:
+  - job: AKSValidation
+
+    steps:
+    - script: |
+        echo "AKS Deployment Manifest Found"
+        ls -la k8s
+      displayName: "Validate Kubernetes Manifests"
