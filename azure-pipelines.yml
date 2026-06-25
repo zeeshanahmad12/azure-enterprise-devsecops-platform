@@ -15,12 +15,32 @@ stages:
 
 - stage: Kubernetes_Validation
   dependsOn: Validation
-
   jobs:
   - job: AKSValidation
-
     steps:
     - script: |
         echo "AKS Deployment Manifest Found"
         ls -la k8s
       displayName: "Validate Kubernetes Manifests"
+
+- stage: Deploy_to_AKS
+  dependsOn: Kubernetes_Validation
+  jobs:
+  - job: Deploy
+    steps:
+
+    - task: KubernetesManifest@1
+      displayName: Deploy Deployment
+      inputs:
+        action: deploy
+        kubernetesServiceConnection: aks-enterprise-devsecops-sc
+        manifests: |
+          k8s/deployment.yaml
+
+    - task: KubernetesManifest@1
+      displayName: Deploy Service
+      inputs:
+        action: deploy
+        kubernetesServiceConnection: aks-enterprise-devsecops-sc
+        manifests: |
+          k8s/service.yaml
