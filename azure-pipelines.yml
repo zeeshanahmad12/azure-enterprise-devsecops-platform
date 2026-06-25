@@ -1,61 +1,101 @@
 trigger:
-- main
+
+* main
 
 pool:
-  vmImage: ubuntu-latest
+vmImage: ubuntu-latest
 
 stages:
 
-- stage: Validation
+* stage: Validation
   jobs:
-  - job: Validation
+
+  * job: Validation
     steps:
-    - script: echo "Validating Enterprise DevSecOps Platform"
+
+    * script: echo "Validating Enterprise DevSecOps Platform"
       displayName: "Validation"
 
-- stage: Testing
+* stage: Testing
   dependsOn: Validation
   jobs:
-  - job: Pytest
+
+  * job: Pytest
     steps:
 
-    - task: UsePythonVersion@0
+    * task: UsePythonVersion@0
       inputs:
-        versionSpec: '3.12'
+      versionSpec: '3.12'
 
-    - script: |
-        pip install -r app/requirements.txt
-        pytest app/test_app.py
+    * script: |
+      pip install -r app/requirements.txt
+      pytest app/test_app.py
       displayName: "Run Pytest Tests"
 
-- stage: Kubernetes_Validation
+* stage: Code_Quality
   dependsOn: Testing
   jobs:
-  - job: AKSValidation
+
+  * job: Pylint
     steps:
-    - script: |
-        echo "AKS Deployment Manifest Found"
-        ls -la k8s
+
+    * task: UsePythonVersion@0
+      inputs:
+      versionSpec: '3.12'
+
+    * script: |
+      pip install -r app/requirements.txt
+      pylint app/app.py
+      displayName: "Run Pylint Analysis"
+
+* stage: Security_Scan
+  dependsOn: Code_Quality
+  jobs:
+
+  * job: Bandit
+    steps:
+
+    * task: UsePythonVersion@0
+      inputs:
+      versionSpec: '3.12'
+
+    * script: |
+      pip install -r app/requirements.txt
+      bandit -r app
+      displayName: "Run Bandit Security Scan"
+
+* stage: Kubernetes_Validation
+  dependsOn: Security_Scan
+  jobs:
+
+  * job: AKSValidation
+    steps:
+
+    * script: |
+      echo "AKS Deployment Manifest Found"
+      ls -la k8s
       displayName: "Validate Kubernetes Manifests"
 
-- stage: Deploy_to_AKS
+* stage: Deploy_to_AKS
   dependsOn: Kubernetes_Validation
   jobs:
-  - job: Deploy
+
+  * job: Deploy
     steps:
 
-    - task: KubernetesManifest@1
+    * task: KubernetesManifest@1
       displayName: Deploy Deployment
       inputs:
-        action: deploy
-        kubernetesServiceConnection: aks-enterprise-devsecops-sc
-        manifests: |
-          k8s/deployment.yaml
+      action: deploy
+      kubernetesServiceConnection: aks-enterprise-devsecops-sc
+      manifests: |
+      k8s/deployment.yaml
 
-    - task: KubernetesManifest@1
+    * task: KubernetesManifest@1
       displayName: Deploy Service
       inputs:
-        action: deploy
-        kubernetesServiceConnection: aks-enterprise-devsecops-sc
-        manifests: |
-          k8s/service.yaml
+      action: deploy
+      kubernetesServiceConnection: aks-enterprise-devsecops-sc
+      manifests: |
+      k8s/service.yaml
+
