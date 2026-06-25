@@ -1,101 +1,100 @@
 trigger:
-
-* main
+- main
 
 pool:
-vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
 stages:
 
-* stage: Validation
+- stage: Validation
+  displayName: 'Validation'
   jobs:
-
-  * job: Validation
+  - job: Validation
+    displayName: 'Validation Job'
     steps:
+    - script: |
+        echo "Validating Enterprise DevSecOps Platform"
+      displayName: 'Validation'
 
-    * script: echo "Validating Enterprise DevSecOps Platform"
-      displayName: "Validation"
-
-* stage: Testing
+- stage: Testing
+  displayName: 'Testing'
   dependsOn: Validation
   jobs:
-
-  * job: Pytest
+  - job: Pytest
+    displayName: 'Pytest Job'
     steps:
-
-    * task: UsePythonVersion@0
+    - task: UsePythonVersion@0
       inputs:
-      versionSpec: '3.12'
+        versionSpec: '3.12'
 
-    * script: |
-      pip install -r app/requirements.txt
-      pytest app/test_app.py
-      displayName: "Run Pytest Tests"
+    - script: |
+        pip install -r app/requirements.txt
+        pytest app/test_app.py
+      displayName: 'Run Pytest'
 
-* stage: Code_Quality
+- stage: Code_Quality
+  displayName: 'Code Quality'
   dependsOn: Testing
   jobs:
-
-  * job: Pylint
+  - job: Pylint
+    displayName: 'Pylint Job'
     steps:
-
-    * task: UsePythonVersion@0
+    - task: UsePythonVersion@0
       inputs:
-      versionSpec: '3.12'
+        versionSpec: '3.12'
 
-    * script: |
-      pip install -r app/requirements.txt
-      pylint app/app.py
-      displayName: "Run Pylint Analysis"
+    - script: |
+        pip install -r app/requirements.txt
+        pylint app/app.py
+      displayName: 'Run Pylint'
 
-* stage: Security_Scan
+- stage: Security_Scan
+  displayName: 'Security Scan'
   dependsOn: Code_Quality
   jobs:
-
-  * job: Bandit
+  - job: Bandit
+    displayName: 'Bandit Job'
     steps:
-
-    * task: UsePythonVersion@0
+    - task: UsePythonVersion@0
       inputs:
-      versionSpec: '3.12'
+        versionSpec: '3.12'
 
-    * script: |
-      pip install -r app/requirements.txt
-      bandit -r app
-      displayName: "Run Bandit Security Scan"
+    - script: |
+        pip install -r app/requirements.txt
+        bandit -r app
+      displayName: 'Run Bandit'
 
-* stage: Kubernetes_Validation
+- stage: Kubernetes_Validation
+  displayName: 'Kubernetes Validation'
   dependsOn: Security_Scan
   jobs:
-
-  * job: AKSValidation
+  - job: AKSValidation
+    displayName: 'AKS Validation'
     steps:
+    - script: |
+        echo "AKS Deployment Manifest Found"
+        ls -la k8s
+      displayName: 'Validate Kubernetes Manifests'
 
-    * script: |
-      echo "AKS Deployment Manifest Found"
-      ls -la k8s
-      displayName: "Validate Kubernetes Manifests"
-
-* stage: Deploy_to_AKS
+- stage: Deploy_to_AKS
+  displayName: 'Deploy to AKS'
   dependsOn: Kubernetes_Validation
   jobs:
-
-  * job: Deploy
+  - job: Deploy
+    displayName: 'Deploy Application'
     steps:
-
-    * task: KubernetesManifest@1
-      displayName: Deploy Deployment
+    - task: KubernetesManifest@1
+      displayName: 'Deploy Deployment'
       inputs:
-      action: deploy
-      kubernetesServiceConnection: aks-enterprise-devsecops-sc
-      manifests: |
-      k8s/deployment.yaml
+        action: deploy
+        kubernetesServiceConnection: 'aks-enterprise-devsecops-sc'
+        manifests: |
+          k8s/deployment.yaml
 
-    * task: KubernetesManifest@1
-      displayName: Deploy Service
+    - task: KubernetesManifest@1
+      displayName: 'Deploy Service'
       inputs:
-      action: deploy
-      kubernetesServiceConnection: aks-enterprise-devsecops-sc
-      manifests: |
-      k8s/service.yaml
-
+        action: deploy
+        kubernetesServiceConnection: 'aks-enterprise-devsecops-sc'
+        manifests: |
+          k8s/service.yaml
