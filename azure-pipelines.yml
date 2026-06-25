@@ -13,8 +13,23 @@ stages:
     - script: echo "Validating Enterprise DevSecOps Platform"
       displayName: "Validation"
 
-- stage: Kubernetes_Validation
+- stage: Testing
   dependsOn: Validation
+  jobs:
+  - job: Pytest
+    steps:
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+
+    - script: |
+        pip install -r app/requirements.txt
+        pytest app/test_app.py
+      displayName: "Run Pytest Tests"
+
+- stage: Kubernetes_Validation
+  dependsOn: Testing
   jobs:
   - job: AKSValidation
     steps:
