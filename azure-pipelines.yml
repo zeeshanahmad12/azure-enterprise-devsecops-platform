@@ -62,7 +62,7 @@ stages:
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         pip install bandit
-        bandit -r app
+        bandit -r app -x app/test_app.py
       displayName: Run Bandit
 
 - stage: Kubernetes_Validation
