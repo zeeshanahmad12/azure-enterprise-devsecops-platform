@@ -31,7 +31,7 @@ stages:
       displayName: Run Pytest
 
 # =========================
-# 🔥 SONARCLOUD (UPDATED WITH YOUR KEYS)
+# 🔥 SONARQUBE CLOUD FIXED STAGE
 # =========================
 - stage: SonarCloud_Analysis
   displayName: SonarCloud Analysis
@@ -40,10 +40,9 @@ stages:
   - job: Sonar
     steps:
 
-    - task: SonarCloudPrepare@1
+    - task: SonarQubePrepare@4
       inputs:
-        SonarCloud: 'sonarcloud-sc'
-        organization: 'zeeshanahmad12'
+        SonarQube: 'sonarcloud-sc'
         scannerMode: 'CLI'
         configMode: 'manual'
         cliProjectKey: 'zeeshanahmad12_azure-enterprise-devsecops-platform'
@@ -61,14 +60,14 @@ stages:
         pylint app/app.py --fail-under=5
       displayName: Run Static Analysis
 
-    - task: SonarCloudAnalyze@1
+    - task: SonarQubeAnalyze@4
 
-    - task: SonarCloudPublish@1
+    - task: SonarQubePublish@4
       inputs:
         pollingTimeoutSec: '300'
 
 # =========================
-# Code Quality
+# Code Quality (UNCHANGED)
 # =========================
 - stage: Code_Quality
   displayName: Code Quality
