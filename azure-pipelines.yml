@@ -9,17 +9,6 @@ stages:
 - stage: Validation
   displayName: Validation
   jobs:
-trigger:
-- main
-
-pool:
-  vmImage: ubuntu-latest
-
-stages:
-
-- stage: Validation
-  displayName: Validation
-  jobs:
   - job: Validation
     steps:
     - script: echo "Validating Enterprise DevSecOps Platform"
@@ -94,10 +83,10 @@ stages:
       displayName: Build and Push Docker Image
       inputs:
         command: buildAndPush
-        containerRegistry: acr-enterprise-devsecops-sc
-        repository: devsecops-app
-        dockerfile: app/Dockerfile
-        buildContext: app
+        containerRegistry: 'acr-enterprise-devsecops-sc'
+        repository: 'devsecops-app'
+        dockerfile: 'app/Dockerfile'
+        buildContext: 'app'
         tags: |
           $(Build.BuildId)
           latest
@@ -108,12 +97,11 @@ stages:
   jobs:
   - job: Deploy
     steps:
-
     - task: KubernetesManifest@1
       displayName: Deploy Deployment
       inputs:
         action: deploy
-        kubernetesServiceConnection: aks-enterprise-devsecops-sc
+        kubernetesServiceConnection: 'aks-enterprise-devsecops-sc'
         manifests: |
           k8s/deployment.yaml
 
@@ -121,6 +109,6 @@ stages:
       displayName: Deploy Service
       inputs:
         action: deploy
-        kubernetesServiceConnection: aks-enterprise-devsecops-sc
+        kubernetesServiceConnection: 'aks-enterprise-devsecops-sc'
         manifests: |
           k8s/service.yaml
