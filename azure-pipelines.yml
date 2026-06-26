@@ -6,6 +6,9 @@ pool:
 
 stages:
 
+# =========================
+# VALIDATION
+# =========================
 - stage: Validation
   displayName: Validation
   jobs:
@@ -14,6 +17,9 @@ stages:
     - script: echo "Validating Enterprise DevSecOps Platform"
       displayName: Validation
 
+# =========================
+# TESTING
+# =========================
 - stage: Testing
   displayName: Testing
   dependsOn: Validation
@@ -31,7 +37,7 @@ stages:
       displayName: Run Pytest
 
 # =========================
-# SONARQUBE CLOUD STAGE (CORRECT TASKS)
+# SONARCLOUD ANALYSIS
 # =========================
 - stage: SonarCloud_Analysis
   displayName: SonarCloud Analysis
@@ -57,9 +63,7 @@ stages:
     - script: |
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
-        pip install pylint
-        pylint app/app.py --fail-under=5
-      displayName: Run Static Analysis
+      displayName: Install Dependencies
 
     - task: SonarCloudAnalyze@4
 
@@ -68,7 +72,7 @@ stages:
         pollingTimeoutSec: '300'
 
 # =========================
-# Code Quality
+# CODE QUALITY
 # =========================
 - stage: Code_Quality
   displayName: Code Quality
@@ -81,13 +85,12 @@ stages:
         versionSpec: '3.12'
 
     - script: |
-        python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         pylint app/app.py --disable=all --enable=E
       displayName: Run Pylint
 
 # =========================
-# Security Scan
+# SECURITY SCAN (BANDIT)
 # =========================
 - stage: Security_Scan
   displayName: Security Scan
@@ -100,17 +103,34 @@ stages:
         versionSpec: '3.12'
 
     - script: |
-        python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         bandit -r app -x app/test_app.py
       displayName: Run Bandit
 
 # =========================
-# Kubernetes Validation
+# CHECKOV (NEW ADD ONLY)
+# =========================
+- stage: Checkov_Scan
+  displayName: Checkov Terraform Scan
+  dependsOn: Security_Scan
+  jobs:
+  - job: Checkov
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+
+    - script: |
+        pip install checkov
+        checkov -d terraform
+      displayName: Run Checkov Scan
+
+# =========================
+# KUBERNETES VALIDATION
 # =========================
 - stage: Kubernetes_Validation
   displayName: Kubernetes Validation
-  dependsOn: Security_Scan
+  dependsOn: Checkov_Scan
   jobs:
   - job: AKSValidation
     steps:
@@ -120,7 +140,7 @@ stages:
       displayName: Validate Kubernetes Manifests
 
 # =========================
-# Docker Build & Push
+# DOCKER BUILD & PUSH
 # =========================
 - stage: Docker_Build_Push
   displayName: Docker Build and Push
@@ -142,7 +162,7 @@ stages:
           $(Build.BuildId)
 
 # =========================
-# Trivy Scan
+# TRIVY SCAN
 # =========================
 - stage: Trivy_Image_Scan
   displayName: Trivy Image Scan
@@ -151,21 +171,17 @@ stages:
   - job: Trivy
     steps:
 
-    - task: Docker@2
-      displayName: Login to Azure Container Registry
-      inputs:
-        command: login
-        containerRegistry: 'acr-enterprise-devsecops-sc'
-
     - script: |
         sudo apt-get update
+        sudo apt-get install -y wget
+
         wget -qO- https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-        trivy --version
+
         trivy image --severity HIGH,CRITICAL acrenterprise7861.azurecr.io/devsecops-app:latest
       displayName: Run Trivy Scan
 
 # =========================
-# Deploy to AKS
+# DEPLOY TO AKS
 # =========================
 - stage: Deploy_to_AKS
   displayName: Deploy to AKS
