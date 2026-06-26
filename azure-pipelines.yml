@@ -31,7 +31,7 @@ stages:
       displayName: Run Pytest
 
 # =========================
-# SONARQUBE STAGE (FIXED SC NAME)
+# SONARQUBE CLOUD STAGE (CORRECT TASKS)
 # =========================
 - stage: SonarCloud_Analysis
   displayName: SonarCloud Analysis
@@ -40,9 +40,10 @@ stages:
   - job: Sonar
     steps:
 
-    - task: SonarQubePrepare@4
+    - task: SonarCloudPrepare@4
       inputs:
-        SonarQube: 'sonarcloud-sc-1'
+        SonarCloud: 'sonarcloud-sc'
+        organization: 'zeeshanahmad12'
         scannerMode: 'CLI'
         configMode: 'manual'
         cliProjectKey: 'zeeshanahmad12_azure-enterprise-devsecops-platform'
@@ -60,9 +61,9 @@ stages:
         pylint app/app.py --fail-under=5
       displayName: Run Static Analysis
 
-    - task: SonarQubeAnalyze@4
+    - task: SonarCloudAnalyze@4
 
-    - task: SonarQubePublish@4
+    - task: SonarCloudPublish@4
       inputs:
         pollingTimeoutSec: '300'
 
