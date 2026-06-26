@@ -30,9 +30,49 @@ stages:
         pytest app/test_app.py
       displayName: Run Pytest
 
+# =========================
+# 🔥 SONARCLOUD (UPDATED WITH YOUR KEYS)
+# =========================
+- stage: SonarCloud_Analysis
+  displayName: SonarCloud Analysis
+  dependsOn: Testing
+  jobs:
+  - job: Sonar
+    steps:
+
+    - task: SonarCloudPrepare@1
+      inputs:
+        SonarCloud: 'sonarcloud-sc'
+        organization: 'zeeshanahmad12'
+        scannerMode: 'CLI'
+        configMode: 'manual'
+        cliProjectKey: 'zeeshanahmad12_azure-enterprise-devsecops-platform'
+        cliProjectName: 'azure-enterprise-devsecops-platform'
+        cliSources: '.'
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+        pip install pylint
+        pylint app/app.py --fail-under=5
+      displayName: Run Static Analysis
+
+    - task: SonarCloudAnalyze@1
+
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
+
+# =========================
+# Code Quality
+# =========================
 - stage: Code_Quality
   displayName: Code Quality
-  dependsOn: Testing
+  dependsOn: SonarCloud_Analysis
   jobs:
   - job: Pylint
     steps:
@@ -46,6 +86,9 @@ stages:
         pylint app/app.py --disable=all --enable=E
       displayName: Run Pylint
 
+# =========================
+# Security Scan
+# =========================
 - stage: Security_Scan
   displayName: Security Scan
   dependsOn: Code_Quality
@@ -62,6 +105,9 @@ stages:
         bandit -r app -x app/test_app.py
       displayName: Run Bandit
 
+# =========================
+# Kubernetes Validation
+# =========================
 - stage: Kubernetes_Validation
   displayName: Kubernetes Validation
   dependsOn: Security_Scan
@@ -73,6 +119,9 @@ stages:
         ls -la k8s
       displayName: Validate Kubernetes Manifests
 
+# =========================
+# Docker Build & Push
+# =========================
 - stage: Docker_Build_Push
   displayName: Docker Build and Push
   dependsOn: Kubernetes_Validation
@@ -92,13 +141,14 @@ stages:
           latest
           $(Build.BuildId)
 
+# =========================
+# Trivy Scan
+# =========================
 - stage: Trivy_Image_Scan
   displayName: Trivy Image Scan
   dependsOn: Docker_Build_Push
   jobs:
   - job: Trivy
-    displayName: Scan Container Image
-
     steps:
 
     - task: Docker@2
@@ -109,14 +159,14 @@ stages:
 
     - script: |
         sudo apt-get update
-
         wget -qO- https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-
         trivy --version
-
         trivy image --severity HIGH,CRITICAL acrenterprise7861.azurecr.io/devsecops-app:latest
       displayName: Run Trivy Scan
 
+# =========================
+# Deploy to AKS
+# =========================
 - stage: Deploy_to_AKS
   displayName: Deploy to AKS
   dependsOn: Trivy_Image_Scan
