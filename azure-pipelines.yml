@@ -69,7 +69,7 @@ stages:
   - job: AKSValidation
     steps:
     - script: |
-        echo "AKS Deployment Manifest Found"
+        echo "Validating Kubernetes manifests..."
         ls -la k8s
       displayName: Validate Kubernetes Manifests
 
@@ -79,6 +79,7 @@ stages:
   jobs:
   - job: Docker
     steps:
+
     - task: Docker@2
       displayName: Build and Push Docker Image
       inputs:
@@ -88,15 +89,34 @@ stages:
         dockerfile: 'app/Dockerfile'
         buildContext: 'app'
         tags: |
-          $(Build.BuildId)
           latest
+          $(Build.BuildId)
+
+- stage: Trivy_Image_Scan
+  displayName: Trivy Image Scan
+  dependsOn: Docker_Build_Push
+  jobs:
+  - job: Trivy
+    steps:
+
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y wget
+
+        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.65.0_Linux-64bit.deb
+
+        sudo dpkg -i trivy_0.65.0_Linux-64bit.deb
+
+        trivy image --severity HIGH,CRITICAL acrenterprise7861.azurecr.io/devsecops-app:latest
+      displayName: Run Trivy Scan
 
 - stage: Deploy_to_AKS
   displayName: Deploy to AKS
-  dependsOn: Docker_Build_Push
+  dependsOn: Trivy_Image_Scan
   jobs:
   - job: Deploy
     steps:
+
     - task: KubernetesManifest@1
       displayName: Deploy Deployment
       inputs:
