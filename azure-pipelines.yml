@@ -31,7 +31,7 @@ stages:
       displayName: Run Pytest
 
 # =========================
-# 🔥 SONARQUBE CLOUD FIXED STAGE
+# SONARQUBE STAGE (FIXED SC NAME)
 # =========================
 - stage: SonarCloud_Analysis
   displayName: SonarCloud Analysis
@@ -42,7 +42,7 @@ stages:
 
     - task: SonarQubePrepare@4
       inputs:
-        SonarQube: 'sonarcloud-sc'
+        SonarQube: 'sonarcloud-sc-1'
         scannerMode: 'CLI'
         configMode: 'manual'
         cliProjectKey: 'zeeshanahmad12_azure-enterprise-devsecops-platform'
@@ -67,7 +67,7 @@ stages:
         pollingTimeoutSec: '300'
 
 # =========================
-# Code Quality (UNCHANGED)
+# Code Quality
 # =========================
 - stage: Code_Quality
   displayName: Code Quality
