@@ -9,6 +9,17 @@ stages:
 - stage: Validation
   displayName: Validation
   jobs:
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+
+- stage: Validation
+  displayName: Validation
+  jobs:
   - job: Validation
     steps:
     - script: echo "Validating Enterprise DevSecOps Platform"
@@ -27,7 +38,6 @@ stages:
     - script: |
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
-        pip install pytest
         pytest app/test_app.py
       displayName: Run Pytest
 
@@ -44,7 +54,6 @@ stages:
     - script: |
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
-        pip install pylint
         pylint app/app.py --disable=all --enable=E
       displayName: Run Pylint
 
@@ -61,7 +70,6 @@ stages:
     - script: |
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
-        pip install bandit
         bandit -r app -x app/test_app.py
       displayName: Run Bandit
 
@@ -76,12 +84,31 @@ stages:
         ls -la k8s
       displayName: Validate Kubernetes Manifests
 
+- stage: Docker_Build_Push
+  displayName: Docker Build and Push
+  dependsOn: Kubernetes_Validation
+  jobs:
+  - job: Docker
+    steps:
+    - task: Docker@2
+      displayName: Build and Push Docker Image
+      inputs:
+        command: buildAndPush
+        containerRegistry: acr-enterprise-devsecops-sc
+        repository: devsecops-app
+        dockerfile: app/Dockerfile
+        buildContext: app
+        tags: |
+          $(Build.BuildId)
+          latest
+
 - stage: Deploy_to_AKS
   displayName: Deploy to AKS
-  dependsOn: Kubernetes_Validation
+  dependsOn: Docker_Build_Push
   jobs:
   - job: Deploy
     steps:
+
     - task: KubernetesManifest@1
       displayName: Deploy Deployment
       inputs:
